@@ -1,0 +1,252 @@
+{
+ "cells": [
+  {
+   "cell_type": "code",
+   "execution_count": 5,
+   "id": "9dff6b59-10c8-4e55-ae02-858a2d40aa6c",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Main dataset 'credit_risk_dataset.csv' loaded successfully.\n"
+     ]
+    }
+   ],
+   "source": [
+    "import pandas as pd\n",
+    "from sklearn.model_selection import train_test_split\n",
+    "from sklearn.linear_model import LogisticRegression\n",
+    "from sklearn.tree import DecisionTreeClassifier\n",
+    "from sklearn.ensemble import RandomForestClassifier\n",
+    "from sklearn.metrics import precision_score, recall_score, f1_score, roc_auc_score, confusion_matrix\n",
+    "\n",
+    "\n",
+    "# Load the main dataset\n",
+    "try:\n",
+    "    df = pd.read_csv('credit_risk_dataset.csv')\n",
+    "    print(\"Main dataset 'credit_risk_dataset.csv' loaded successfully.\")\n",
+    "except FileNotFoundError:\n",
+    "    print(\"Error: 'credit_risk_dataset.csv' not found. Please ensure it's in the same directory.\")\n",
+    "    exit()\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 6,
+   "id": "83810fc7-256a-43e4-9bdc-86eb5b196f8c",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Handle Missing Values\n",
+    "median_emp_length = df['person_emp_length'].median()\n",
+    "df['person_emp_length'] = df['person_emp_length'].fillna(median_emp_length)\n",
+    "\n",
+    "median_loan_int_rate = df['loan_int_rate'].median()\n",
+    "df['loan_int_rate'] = df['loan_int_rate'].fillna(median_loan_int_rate)\n",
+    "\n",
+    "# Identify categorical columns (important for later encoding new data)\n",
+    "categorical_cols = ['person_home_ownership', 'loan_intent', 'loan_grade', 'cb_person_default_on_file']\n",
+    "\n",
+    "# Apply One-Hot Encoding to the main dataset\n",
+    "df_encoded = pd.get_dummies(df, columns=categorical_cols, drop_first=True)\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 7,
+   "id": "68b9bf63-21a0-47a9-b4e0-a690bd661324",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "\n",
+      "Training the Random Forest Model...\n",
+      "Random Forest Model trained successfully.\n"
+     ]
+    }
+   ],
+   "source": [
+    "# Separate Features (X) and Target (y)\n",
+    "X = df_encoded.drop('loan_status', axis=1)\n",
+    "y = df_encoded['loan_status']\n",
+    "\n",
+    "# Split Data (to get X_train for column alignment)\n",
+    "X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42, stratify=y)\n",
+    "\n",
+    "# Train the Random Forest Model (this will be our 'best_model')\n",
+    "best_model = RandomForestClassifier(random_state=42)\n",
+    "print(\"\\nTraining the Random Forest Model...\")\n",
+    "best_model.fit(X_train, y_train)\n",
+    "print(\"Random Forest Model trained successfully.\")\n",
+    "\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 8,
+   "id": "b555222d-4e09-449b-b2b7-7d3e29a583cc",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "\n",
+      "--- Predicting Creditworthiness for New Data from 'new_person_data.csv' ---\n",
+      "New person data 'new_person_data.csv' loaded successfully.\n",
+      "\n",
+      "Raw New Person Data:\n",
+      "| person_age   | person_income   | person_home_ownership   | person_emp_length   | loan_intent       | loan_grade   | loan_amnt   | loan_int_rate   | loan_percent_income   | cb_person_default_on_file   | cb_person_cred_hist_length   |\n",
+      "|:-------------|:----------------|:------------------------|:--------------------|:------------------|:-------------|:------------|:----------------|:----------------------|:----------------------------|:-----------------------------|\n",
+      "| 35           | 80000           | MORTGAGE                | 10                  | HOMEIMPROVEMENT   | A            | 20000       | 7.5             | 0.25                  | N                           | 8                            |\n",
+      "| 28           | 45000           | RENT                    | 3                   | EDUCATION         | C            | 10000       | 14              | 0.3                   | Y                           | 2                            |\n",
+      "| 42           | 120000          | OWN                     | 15                  | DEBTCONSOLIDATION | B            | 30000       | 9               | 0.25                  | N                           | 10                           |\n",
+      "| 24           | 30000           | RENT                    | 1                   | MEDICAL           | D            | 5000        | 16.5            | 0.17                  | Y                           | 1                            |\n"
+     ]
+    }
+   ],
+   "source": [
+    "print(\"\\n--- Predicting Creditworthiness for New Data from 'new_person_data.csv' ---\")\n",
+    "\n",
+    "# Load the new person's data from a CSV file\n",
+    "try:\n",
+    "    new_person_df = pd.read_csv('new_person_data.csv')\n",
+    "    print(\"New person data 'new_person_data.csv' loaded successfully.\")\n",
+    "except FileNotFoundError:\n",
+    "    print(\"Error: 'new_person_data.csv' not found. Please create this file with new data.\")\n",
+    "    exit()\n",
+    "\n",
+    "print(\"\\nRaw New Person Data:\")\n",
+    "print(new_person_df.to_markdown(index=False, numalign=\"left\", stralign=\"left\"))\n",
+    "\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 9,
+   "id": "a2f150b5-2aa4-47f3-b702-d6595f60d04a",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# 1. Impute missing values using the MEDIANS from the original training data\n",
+    "new_person_df['person_emp_length'] = new_person_df['person_emp_length'].fillna(median_emp_length)\n",
+    "new_person_df['loan_int_rate'] = new_person_df['loan_int_rate'].fillna(median_loan_int_rate)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 10,
+   "id": "b4c72196-54a4-426f-abd5-7a78ef9f1223",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "\n",
+      "Preprocessed New Person Features (first 5 columns and shape):\n",
+      "| person_age   | person_income   | person_emp_length   | loan_amnt   | loan_int_rate   |\n",
+      "|:-------------|:----------------|:--------------------|:------------|:----------------|\n",
+      "| 35           | 80000           | 10                  | 20000       | 7.5             |\n",
+      "| 28           | 45000           | 3                   | 10000       | 14              |\n",
+      "| 42           | 120000          | 15                  | 30000       | 9               |\n",
+      "| 24           | 30000           | 1                   | 5000        | 16.5            |\n",
+      "Shape of preprocessed new features: (4, 22)\n"
+     ]
+    }
+   ],
+   "source": [
+    "# 2. Apply One-Hot Encoding to new data\n",
+    "new_person_encoded = pd.get_dummies(new_person_df, columns=categorical_cols, drop_first=True)\n",
+    "\n",
+    "# Align columns with the training data (X_train). This step is crucial!\n",
+    "new_person_features = new_person_encoded.reindex(columns=X_train.columns, fill_value=0)\n",
+    "\n",
+    "print(\"\\nPreprocessed New Person Features (first 5 columns and shape):\")\n",
+    "\n",
+    "print(new_person_features.iloc[:, :5].to_markdown(index=False, numalign=\"left\", stralign=\"left\"))\n",
+    "print(f\"Shape of preprocessed new features: {new_person_features.shape}\")\n",
+    "\n",
+    "# 3. Make predictions using the trained 'best_model'\n",
+    "predictions = best_model.predict(new_person_features)\n",
+    "probabilities = best_model.predict_proba(new_person_features)\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 11,
+   "id": "eda3791c-0306-4ea3-ab83-298f7ce2ad3f",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "\n",
+      "--- Creditworthiness Predictions ---\n",
+      "\n",
+      "Person (Age: 35, Income: 80000):\n",
+      "  Predicted Status: Creditworthy\n",
+      "  Confidence Score: 0.9900\n",
+      "\n",
+      "Person (Age: 28, Income: 45000):\n",
+      "  Predicted Status: Creditworthy\n",
+      "  Confidence Score: 0.7200\n",
+      "\n",
+      "Person (Age: 42, Income: 120000):\n",
+      "  Predicted Status: Creditworthy\n",
+      "  Confidence Score: 0.9400\n",
+      "\n",
+      "Person (Age: 24, Income: 30000):\n",
+      "  Predicted Status: Not Creditworthy\n",
+      "  Confidence Score: 0.9500\n"
+     ]
+    }
+   ],
+   "source": [
+    "# Display results for each person\n",
+    "print(\"\\n--- Creditworthiness Predictions ---\")\n",
+    "for i, (pred, prob) in enumerate(zip(predictions, probabilities)):\n",
+    "    person_id = f\"Person {i+1}\"\n",
+    "    if 'person_age' in new_person_df.columns and 'person_income' in new_person_df.columns:\n",
+    "        person_id = f\"Person (Age: {new_person_df.loc[i, 'person_age']}, Income: {new_person_df.loc[i, 'person_income']})\"\n",
+    "\n",
+    "    if pred == 0:\n",
+    "        status = \"Creditworthy\"\n",
+    "        confidence = prob[0]\n",
+    "    else:\n",
+    "        status = \"Not Creditworthy\"\n",
+    "        confidence = prob[1]\n",
+    "\n",
+    "    print(f\"\\n{person_id}:\")\n",
+    "    print(f\"  Predicted Status: {status}\")\n",
+    "    print(f\"  Confidence Score: {confidence:.4f}\")"
+   ]
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3 (ipykernel)",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.13.3"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 5
+}

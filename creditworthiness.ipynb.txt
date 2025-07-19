@@ -1,0 +1,353 @@
+{
+ "cells": [
+  {
+   "cell_type": "code",
+   "execution_count": 3,
+   "id": "ddc332c1-9963-4388-a401-a634ffe568eb",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import \n",
+    "\n",
+    "as pd\n",
+    "from sklearn.model_selection import train_test_split\n",
+    "from sklearn.linear_model import LogisticRegression\n",
+    "from sklearn.tree import DecisionTreeClassifier\n",
+    "from sklearn.ensemble import RandomForestClassifier\n",
+    "from sklearn.metrics import precision_score, recall_score, f1_score, roc_auc_score, confusion_matrix\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 4,
+   "id": "31436ede-11c1-4f22-8af7-eff56bd57e6c",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Dataset loaded successfully.\n"
+     ]
+    }
+   ],
+   "source": [
+    "try:\n",
+    "    df = pd.read_csv('credit_risk_dataset.csv')\n",
+    "    print(\"Dataset loaded successfully.\")\n",
+    "except FileNotFoundError:\n",
+    "    print(\"Error: 'credit_risk_dataset.csv' not found. Make sure the file is in the same directory as your notebook or provide the full path.\")\n",
+    "    # You might want to exit or handle this error differently in a real application\n",
+    "    # For now, we'll print an error and assume it's fixed for subsequent steps.\n",
+    "    exit()"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 6,
+   "id": "4eb05266-f982-431e-82b0-721f8ff1f289",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "\n",
+      "--- Initial Data Inspection (First 5 Rows) ---\n",
+      "| person_age   | person_income   | person_home_ownership   | person_emp_length   | loan_intent   | loan_grade   | loan_amnt   | loan_int_rate   | loan_status   | loan_percent_income   | cb_person_default_on_file   | cb_person_cred_hist_length   |\n",
+      "|:-------------|:----------------|:------------------------|:--------------------|:--------------|:-------------|:------------|:----------------|:--------------|:----------------------|:----------------------------|:-----------------------------|\n",
+      "| 22           | 59000           | RENT                    | 123                 | PERSONAL      | D            | 35000       | 16.02           | 1             | 0.59                  | Y                           | 3                            |\n",
+      "| 21           | 9600            | OWN                     | 5                   | EDUCATION     | B            | 1000        | 11.14           | 0             | 0.1                   | N                           | 2                            |\n",
+      "| 25           | 9600            | MORTGAGE                | 1                   | MEDICAL       | C            | 5500        | 12.87           | 1             | 0.57                  | N                           | 3                            |\n",
+      "| 23           | 65500           | RENT                    | 4                   | MEDICAL       | C            | 35000       | 15.23           | 1             | 0.53                  | N                           | 2                            |\n",
+      "| 24           | 54400           | RENT                    | 8                   | MEDICAL       | C            | 35000       | 14.27           | 1             | 0.55                  | Y                           | 4                            |\n",
+      "\n",
+      "--- Initial Data Info ---\n",
+      "<class 'pandas.core.frame.DataFrame'>\n",
+      "RangeIndex: 32581 entries, 0 to 32580\n",
+      "Data columns (total 12 columns):\n",
+      " #   Column                      Non-Null Count  Dtype  \n",
+      "---  ------                      --------------  -----  \n",
+      " 0   person_age                  32581 non-null  int64  \n",
+      " 1   person_income               32581 non-null  int64  \n",
+      " 2   person_home_ownership       32581 non-null  object \n",
+      " 3   person_emp_length           31686 non-null  float64\n",
+      " 4   loan_intent                 32581 non-null  object \n",
+      " 5   loan_grade                  32581 non-null  object \n",
+      " 6   loan_amnt                   32581 non-null  int64  \n",
+      " 7   loan_int_rate               29465 non-null  float64\n",
+      " 8   loan_status                 32581 non-null  int64  \n",
+      " 9   loan_percent_income         32581 non-null  float64\n",
+      " 10  cb_person_default_on_file   32581 non-null  object \n",
+      " 11  cb_person_cred_hist_length  32581 non-null  int64  \n",
+      "dtypes: float64(3), int64(5), object(4)\n",
+      "memory usage: 3.0+ MB\n"
+     ]
+    }
+   ],
+   "source": [
+    "print(\"\\n--- Initial Data Inspection (First 5 Rows) ---\")\n",
+    "print(df.head().to_markdown(index=False, numalign=\"left\", stralign=\"left\"))\n",
+    "\n",
+    "print(\"\\n--- Initial Data Info ---\")\n",
+    "df.info()\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 8,
+   "id": "420a6f62-a880-4af7-ac7e-c01112134ddc",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "\n",
+      "--- Handling Missing Values ---\n",
+      "Missing values in 'person_emp_length' imputed with median: 4.0\n",
+      "Missing values in 'loan_int_rate' imputed with median: 10.99\n",
+      "\n",
+      "--- Missing values after imputation ---\n",
+      "|                            | 0   |\n",
+      "|:---------------------------|:----|\n",
+      "| person_age                 | 0   |\n",
+      "| person_income              | 0   |\n",
+      "| person_home_ownership      | 0   |\n",
+      "| person_emp_length          | 0   |\n",
+      "| loan_intent                | 0   |\n",
+      "| loan_grade                 | 0   |\n",
+      "| loan_amnt                  | 0   |\n",
+      "| loan_int_rate              | 0   |\n",
+      "| loan_status                | 0   |\n",
+      "| loan_percent_income        | 0   |\n",
+      "| cb_person_default_on_file  | 0   |\n",
+      "| cb_person_cred_hist_length | 0   |\n"
+     ]
+    }
+   ],
+   "source": [
+    "print(\"\\n--- Handling Missing Values ---\")\n",
+    "# Identify columns with missing values and impute numerical columns with their median.\n",
+    "# The 'df.info()' output showed 'person_emp_length' and 'loan_int_rate' have missing values.\n",
+    "median_emp_length = df['person_emp_length'].median()\n",
+    "\n",
+    "df['person_emp_length'] = df['person_emp_length'].fillna(median_emp_length)\n",
+    "print(f\"Missing values in 'person_emp_length' imputed with median: {median_emp_length}\")\n",
+    "\n",
+    "median_loan_int_rate = df['loan_int_rate'].median()\n",
+    "df['loan_int_rate'] = df['loan_int_rate'].fillna(median_loan_int_rate)\n",
+    "print(f\"Missing values in 'loan_int_rate' imputed with median: {median_loan_int_rate}\")\n",
+    "\n",
+    "print(\"\\n--- Missing values after imputation ---\")\n",
+    "print(df.isnull().sum().to_markdown(numalign=\"left\", stralign=\"left\"))\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 10,
+   "id": "e1a40d04-d9ff-412d-b290-fc03e8d2d106",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "\n",
+      "--- One-Hot Encoding Categorical Variables ---\n",
+      "Original DataFrame shape: (32581, 12)\n",
+      "Encoded DataFrame shape: (32581, 23)\n"
+     ]
+    }
+   ],
+   "source": [
+    "print(\"\\n--- One-Hot Encoding Categorical Variables ---\")\n",
+    "# Convert categorical text data into numerical format that machine learning models can understand.\n",
+    "# 'person_home_ownership', 'loan_intent', 'loan_grade', 'cb_person_default_on_file' are categorical.\n",
+    "categorical_cols = ['person_home_ownership', 'loan_intent', 'loan_grade', 'cb_person_default_on_file']\n",
+    "# pd.get_dummies performs one-hot encoding. drop_first=True helps prevent multicollinearity.\n",
+    "df_encoded = pd.get_dummies(df, columns=categorical_cols, drop_first=True)\n",
+    "\n",
+    "print(f\"Original DataFrame shape: {df.shape}\")\n",
+    "print(f\"Encoded DataFrame shape: {df_encoded.shape}\")\n",
+    "\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 11,
+   "id": "b0bc9f46-b4d4-424f-8164-7a69d9f21c70",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "\n",
+    "# --- 4. Separate Features (X) and Target (y) ---\n",
+    "# X contains the input features (independent variables), and y contains the target variable (dependent variable).\n",
+    "X = df_encoded.drop('loan_status', axis=1) # Drop the target column to get features\n",
+    "y = df_encoded['loan_status'] # The 'loan_status' column is our target for creditworthiness"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 12,
+   "id": "e4781195-bc02-424a-880d-899beb18f9ac",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "\n",
+      "--- Data Split Shapes ---\n",
+      "Shape of X_train (training features): (22806, 22)\n",
+      "Shape of X_test (testing features): (9775, 22)\n",
+      "Shape of y_train (training target): (22806,)\n",
+      "Shape of y_test (testing target): (9775,)\n"
+     ]
+    }
+   ],
+   "source": [
+    "print(f\"\\n--- Data Split Shapes ---\")\n",
+    "# Split the dataset into training (70%) and testing (30%) sets.\n",
+    "# random_state ensures reproducibility of the split.\n",
+    "# stratify=y ensures that the proportion of target variable classes (0s and 1s) is preserved in both sets.\n",
+    "X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=42, stratify=y)\n",
+    "\n",
+    "print(f\"Shape of X_train (training features): {X_train.shape}\")\n",
+    "print(f\"Shape of X_test (testing features): {X_test.shape}\")\n",
+    "print(f\"Shape of y_train (training target): {y_train.shape}\")\n",
+    "print(f\"Shape of y_test (testing target): {y_test.shape}\")\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "cdd523d7-4499-4f61-a13a-070f13ebafc3",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "models = {\n",
+    "    'Logistic Regression': LogisticRegression(random_state=42, solver='liblinear', max_iter=1000), # liblinear is good for small datasets and handles L1/L2 regularization\n",
+    "    'Decision Tree': DecisionTreeClassifier(random_state=42),\n",
+    "    'Random Forest': RandomForestClassifier(random_state=42)\n",
+    "}\n",
+    "\n",
+    "results = {}\n",
+    "\n",
+    "print(\"\\n--- Model Training and Evaluation ---\")\n",
+    "for name, model in models.items():\n",
+    "    print(f\"\\nTraining and evaluating {name}...\")\n",
+    "    model.fit(X_train, y_train) # Train the model on the training data\n",
+    "    y_pred = model.predict(X_test) # Predict on the test data\n",
+    "    y_prob = model.predict_proba(X_test)[:, 1] # Get probabilities for ROC-AUC (probability of the positive class)\n",
+    "\n",
+    "    # Calculate evaluation metrics\n",
+    "    precision = precision_score(y_test, y_pred)\n",
+    "    recall = recall_score(y_test, y_pred)\n",
+    "    f1 = f1_score(y_test, y_pred)\n",
+    "    roc_auc = roc_auc_score(y_test, y_prob)\n",
+    "    cm = confusion_matrix(y_test, y_pred) # Confusion matrix provides a detailed breakdown of predictions\n",
+    "\n",
+    "    results[name] = {\n",
+    "        'Precision': precision,\n",
+    "        'Recall': recall,\n",
+    "        'F1-Score': f1,\n",
+    "        'ROC-AUC': roc_auc,\n",
+    "        'Confusion Matrix': cm.tolist() # Convert to list for consistent output/display\n",
+    "    }\n",
+    "    print(f\"  Precision: {precision:.4f}\")\n",
+    "    print(f\"  Recall: {recall:.4f}\")\n",
+    "    print(f\"  F1-Score: {f1:.4f}\")\n",
+    "    print(f\"  ROC-AUC: {roc_auc:.4f}\")\n",
+    "    print(f\"  Confusion Matrix:\\n{cm}\")\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 16,
+   "id": "95cfd924-0094-4142-9517-3d8bf42180fc",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "\n",
+      "--- Summary of Model Evaluation Results ---\n",
+      "\n",
+      "Model: Logistic Regression\n",
+      "  Precision: 0.7423\n",
+      "  Recall: 0.1580\n",
+      "  F1-Score: 0.2605\n",
+      "  ROC-AUC: 0.7626\n",
+      "  Confusion Matrix: [[7525, 117], [1796, 337]]\n",
+      "\n",
+      "Model: Decision Tree\n",
+      "  Precision: 0.7391\n",
+      "  Recall: 0.7754\n",
+      "  F1-Score: 0.7568\n",
+      "  ROC-AUC: 0.8495\n",
+      "  Confusion Matrix: [[7058, 584], [479, 1654]]\n",
+      "\n",
+      "Model: Random Forest\n",
+      "  Precision: 0.9502\n",
+      "  Recall: 0.7239\n",
+      "  F1-Score: 0.8217\n",
+      "  ROC-AUC: 0.9335\n",
+      "  Confusion Matrix: [[7561, 81], [589, 1544]]\n",
+      "\n",
+      "--- Conclusion ---\n",
+      "Based on the evaluation metrics, the Random Forest model generally performed the best among the three, achieving a high precision (minimizing false positives, i.e., incorrectly classifying someone as creditworthy) and a strong ROC-AUC score (indicating good overall discrimination between the two classes).\n",
+      "Decision Tree also showed competitive recall, but Random Forest's ensemble nature typically leads to more robust performance.\n",
+      "Logistic Regression served as a good baseline but had lower recall in this scenario.\n"
+     ]
+    }
+   ],
+   "source": [
+    "print(\"\\n--- Summary of Model Evaluation Results ---\")\n",
+    "# This section consolidates and prints the performance metrics for all trained models.\n",
+    "for name, metrics in results.items():\n",
+    "    print(f\"\\nModel: {name}\")\n",
+    "    print(f\"  Precision: {metrics['Precision']:.4f}\")\n",
+    "    print(f\"  Recall: {metrics['Recall']:.4f}\")\n",
+    "    print(f\"  F1-Score: {metrics['F1-Score']:.4f}\")\n",
+    "    print(f\"  ROC-AUC: {metrics['ROC-AUC']:.4f}\")\n",
+    "    print(f\"  Confusion Matrix: {metrics['Confusion Matrix']}\")\n",
+    "\n",
+    "print(\"\\n--- Conclusion ---\")\n",
+    "print(\"Based on the evaluation metrics, the Random Forest model generally performed the best among the three, achieving a high precision (minimizing false positives, i.e., incorrectly classifying someone as creditworthy) and a strong ROC-AUC score (indicating good overall discrimination between the two classes).\")\n",
+    "print(\"Decision Tree also showed competitive recall, but Random Forest's ensemble nature typically leads to more robust performance.\")\n",
+    "print(\"Logistic Regression served as a good baseline but had lower recall in this scenario.\")\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "48e79887-1461-497e-9806-6dd36f1ce13c",
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3 (ipykernel)",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.13.3"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 5
+}
